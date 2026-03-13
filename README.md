@@ -1,13 +1,14 @@
-# SONU Electronic Voting System (Voter Module)
+# SONU Electronic Voting System (Registration Module)
 
-An efficient, file-based voter registration system designed for the Student Organization of Nairobi University (SONU) elections. This module allows for the secure registration of students and prevents duplicate entries using a binary data store.
+An efficient, file-based registration system designed for the Student Organization of Nairobi University (SONU) elections. This module allows for the secure registration of both students (voters) and electoral candidates, preventing duplicate entries using a binary data store.
 
 ## 📂 Project Structure
 
-* **voter.h**: Header file containing the `Voter` structure and function prototypes.
-* **voter.c**: Main source code for registration logic and file I/O.
-* **voters.dat**: Binary database file (auto-generated) where voter records are stored.
-* **.gitignore**: Prevents compiled binaries and data files from being tracked by Git.
+* **voter.h:** Header file containing the `Voter` and `Candidate` structures and function prototypes.
+* **voter.c:** Main source code for registration logic, menus, and file I/O.
+* **voters.dat:** Binary database file (auto-generated) where voter records are stored.
+* **candidates.dat:** Binary database file (auto-generated) where candidate records are stored.
+* **.gitignore:** Prevents compiled binaries (`.exe`) and data files (`.dat`) from being tracked by Git.
 
 ## 🛠️ Requirements
 
