@@ -1,231 +1,169 @@
-# SONU Electronic Voting System
+# 🗳️ SONU Electronic Voting System  
+## Client–Server Architecture (TCP Sockets)
 
-A standalone, file-based electronic voting system for the Student Organization of Nairobi University (SONU). The system handles voter registration, candidate registration across 11 official positions, per-position voting with session resumption, live vote tallying, and official results announcement with tie detection.
+A **networked, file-based electronic voting system** for the *Student Organization of Nairobi University (SONU)*.
 
-The program runs entirely on **one computer** and does **not require internet, servers, or external services**.
+The system supports:
+- Voter registration  
+- Candidate registration across 11 official positions  
+- Secure per-position voting  
+- Session resumption  
+- Live vote tallying  
+- Official results announcement  
+
+This version implements a **Client–Server Architecture** using **TCP sockets**, allowing multiple voters (clients) to connect to a centralized server safely.
 
 ---
 
-## Project Structure
+## 🏛️ System Architecture
+
+To prevent file corruption and ensure safe concurrent access, the system is divided into two components:
+
+### 🔐 Server (`server_main.c`)
+The **central vault** of the system.
+
+- Handles all file operations (`.dat` files)  
+- Processes client requests  
+- Prevents duplicate registrations  
+- Executes voting logic  
+- Sends responses back to clients  
+
+### 🖥️ Client (`client_main.c`)
+The **voting booth (user interface)**.
+
+- Displays menus  
+- Collects user input  
+- Sends requests to the server  
+- Displays server responses  
+- Has **no direct access to the database**
+
+---
+
+## 📁 Project Structure
 
 This project follows **Modular Programming** principles. Each file has a single, clearly defined responsibility.
 
 | File              | Description                                                                                         |
 | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `voter.h`         | Shared header containing the `Voter` and `Candidate` structs and all function prototypes.           |
-| `main.c`          | Entry point. Presents the main menu and dispatches choices to the appropriate module.               |
-| `voter.c`         | Handles voter registration and duplicate checking via student ID scan.                              |
-| `candidate.c`     | Handles candidate registration across all 11 SONU positions and displays registered candidates.    |
-| `voting.c`        | Handles vote casting with bitmask-based per-position session tracking.                             |
+| `protocol.h`      | Shared network protocol defining `ClientRequest` and `ServerResponse` structures.                   |
+| `server_main.c`   | Server entry point. Listens on port 8080 and processes all client requests.                         |
+| `client_main.c`   | Client entry point. Provides UI and communicates with server via TCP sockets.                       |
+| `voter.h`         | Shared header containing the `Voter` and `Candidate` structs.                                       |
+| `voter.c`         | Handles voter validation and duplicate checking using student ID scans.                             |
+| `candidate.c`     | Handles candidate validation and registration across all SONU positions.                            |
+| `voting.c`        | Handles vote casting with bitmask-based per-position session tracking.                              |
 | `results.c`       | Handles vote tallying and official results announcement with tie detection.                         |
-| `utils.c`         | Shared utility layer — generic file I/O functions reusable across modules.                         |
 | `voters.dat`      | Auto-generated binary file storing registered voter records.                                        |
-| `candidates.dat`  | Auto-generated binary file storing registered candidate records and live vote counts.               |
+| `candidates.dat`  | Auto-generated binary file storing registered candidate records and vote counts.                    |
 
-> ⚠️ **Do not open `.dat` files in a text editor.** They are stored in raw binary format and will appear as unreadable characters.
-
----
-
-## Data Structures
-
-Both structures are defined in `voter.h` and shared across all modules.
-
-### Voter
-| Field        | Type       | Description                                                                                      |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------------ |
-| `student_id` | `char[15]` | University student ID. Used as the primary key for duplicate checking and voter lookup.          |
-| `name`       | `char[50]` | Full name of the voter.                                                                          |
-| `has_voted`  | `int`      | Set to `1` only after all 11 positions have been voted. Prevents re-entry into the voting flow. |
-| `votes_cast` | `int`      | Bitmask. Bit `p` is set immediately after the voter casts their vote for position `p` (1–11).   |
-
-### Candidate
-| Field        | Type       | Description                                                                              |
-| ------------ | ---------- | ---------------------------------------------------------------------------------------- |
-| `student_id` | `char[15]` | Candidate's student ID. Used for duplicate prevention and displayed in results.          |
-| `name`       | `char[50]` | Full name of the candidate.                                                              |
-| `position`   | `char[50]` | One of the 11 official SONU positions assigned at registration.                          |
-| `votes`      | `int`      | Vote counter. Starts at `0`. Incremented live during voting and written back to disk.    |
+> ⚠️ **Do not open `.dat` files in a text editor.** > They are stored in raw binary format and will appear as unreadable characters.
 
 ---
 
-## SONU Positions
+## 📊 Data Structures
 
-The system supports all 11 official SONU electoral positions:
+### 👤 Voter
 
-| # | Position                              |
-|---|---------------------------------------|
-| 1 | Chairman                              |
-| 2 | Vice Chairman                         |
-| 3 | Secretary General                     |
-| 4 | Organizing Secretary                  |
-| 5 | Secretary for Finance                 |
-| 6 | Secretary for Academic Affairs        |
-| 7 | Secretary for Catering and Accommodation |
-| 8 | Secretary for Legal Affairs           |
-| 9 | Secretary for Gender Affairs          |
-| 10 | Secretary for Special Needs          |
-| 11 | Campus/Faculty Representatives       |
+| Field         | Type       | Description                                                                 |
+|--------------|-----------|-----------------------------------------------------------------------------|
+| `student_id` | `char[15]` | Unique student ID (primary key for duplicate checking)                      |
+| `name`       | `char[50]` | Full name of the voter                                                      |
+| `has_voted`  | `int`      | Set to `1` only after all 11 positions have been voted                      |
+| `votes_cast` | `int`      | Bitmask tracking which positions have already been voted                    |
 
 ---
 
-## Features
+### 🧑‍💼 Candidate
 
-### Voter Management
-- Register a voter with Student ID and full name
-- Duplicate prevention — a student ID cannot be registered twice
-- Voting status tracked per voter
-
-### Candidate Management
-- Register a candidate for any of the 11 SONU positions
-- Duplicate prevention — a student ID cannot register as candidate twice
-- View all registered candidates with current vote counts
-
-### Voting
-- Vote for candidates across all 11 positions in a single session
-- **Session resumption** — if the program is closed mid-vote, the session is saved and resumes from where it left off on next login
-- Positions with no registered candidates are skipped automatically
-- Invalid input is rejected with a re-prompt — no silent errors
-
-### Results
-- **Vote tally** — live per-position vote count for all candidates
-- **Announce results** — declares winner per position, handles ties with re-vote recommendation, shows total votes cast
+| Field         | Type       | Description                                                                 |
+|--------------|-----------|-----------------------------------------------------------------------------|
+| `student_id` | `char[15]` | Candidate's student ID                                                      |
+| `name`       | `char[50]` | Candidate's full name                                                       |
+| `position`   | `char[50]` | Assigned SONU position                                                      |
+| `votes`      | `int`      | Vote counter (updated live during voting)                                   |
 
 ---
 
-## How the Bitmask Works
+## 🎓 SONU Electoral Positions
 
-The `votes_cast` field in the `Voter` struct uses individual bits to track which positions have been voted:
-
-```
-Bit 1  = Chairman
-Bit 2  = Vice Chairman
-...
-Bit 11 = Campus/Faculty Representatives
-
-Set:   voter.votes_cast |= (1 << p)
-Check: voter.votes_cast &  (1 << p)
-```
-
-Each bit is written to disk **immediately** after its position is voted. If the program closes mid-session, no position can be voted twice on re-entry.
+1. Chairman  
+2. Vice Chairman  
+3. Secretary General  
+4. Organizing Secretary  
+5. Secretary for Finance  
+6. Secretary for Academic Affairs  
+7. Secretary for Catering and Accommodation  
+8. Secretary for Legal Affairs  
+9. Secretary for Gender Affairs  
+10. Secretary for Special Needs  
+11. Campus/Faculty Representatives  
 
 ---
 
-## Utility Layer (`utils.c`)
+## ⚙️ Features
 
-`utils.c` provides generic, struct-agnostic file functions shared across modules and reusable in other applications.
-
-| Function          | Description                                                                    |
-| ----------------- | ------------------------------------------------------------------------------ |
-| `read_record()`   | Reads one record at a given index from a binary file using a direct byte seek. |
-| `append_record()` | Appends a record to a binary file and returns the new record's positional ID.  |
-
-> **Note:** Voter and candidate lookups use sequential `fread()` scans rather than `read_record()` because both are keyed by string student IDs, not positional integers.
+- 🌐 **Networked Communication** — TCP sockets (Winsock2)  
+- 🔒 **Centralized Data Protection** — Only the server accesses `.dat` files  
+- 🚫 **Duplicate Prevention** — Ensures unique student IDs  
+- 📋 **Live Candidate Table** — Dynamically generated by the server  
+- 🔄 **Session Resumption** — Voting resumes using bitmask tracking  
 
 ---
 
-## How to Compile and Run
+## 🛠️ How to Compile and Run
 
-All `.c` files must be compiled together.
+⚠️ This is a **networked application** — you must run **two separate terminals**.  
+⚠️ Link the Windows Sockets library using the `-lws2_32` flag during compilation.
 
-### Step 1 — Open the terminal
+### Step 1 — Start the Server (Terminal 1)
+1. Open a new PowerShell or VS Code terminal.
+2. Navigate to the project folder.
+3. Compile the server:
+   ```bash
+   gcc server_main.c voter.c candidate.c voting.c results.c -o server -lws2_32
+   ```
+4. Run the server:
+   ```bash
+   .\server
+   ```
+   *(Leave this terminal running in the background. It will log all network traffic and database actions.)*
 
-In VS Code, press:
-```
-Ctrl + `
-```
-
-### Step 2 — Navigate to the project folder
-
-```bash
-cd your-project-folder
-```
-
-### Step 3 — Compile
-
-```bash
-gcc main.c voter.c candidate.c voting.c results.c utils.c -o voters
-```
-
-### Step 4 — Run
-
-**Windows:**
-```bash
-.\voters.exe
-```
-
-**Linux / macOS:**
-```bash
-./voters
-```
-
-> ⚠️ If you modify either struct in `voter.h` (add or remove a field), delete `voters.dat` and `candidates.dat` before running again. The binary layout of existing records will not match the new struct size and will produce corrupted output.
+### Step 2 — Start the Client (Terminal 2)
+1. Open a **second, brand-new** PowerShell or VS Code terminal window.
+2. Navigate to the project folder.
+3. Compile the client:
+   ```bash
+   gcc client_main.c -o client -lws2_32
+   ```
+4. Run the client:
+   ```bash
+   .\client
+   ```
+   *(This is where you will actually interact with the menus and use the system.)*
 
 ---
 
-## Menu Options
+## 💻 Windows GCC Setup
 
-```
-1. Register Voter
-2. Register Candidate
-3. View Candidates
-4. Cast Vote
-5. View Vote Tally
-6. Announce Results
-7. Exit
-```
+If you see the error `gcc is not recognized`, GCC is not installed on your machine. Follow these steps:
 
----
-
-## Windows GCC Setup
-
-If you see:
-```
-gcc is not recognized
-```
-
-GCC is not installed. Follow the steps below.
-
-### Step 1 — Download MSYS2
-
-Go to https://msys2.org and download `msys2-x86_64-latest.exe`. Run the installer with default settings.
-
-### Step 2 — Install GCC
-
-When the MSYS2 terminal opens, run:
-```bash
-pacman -S mingw-w64-ucrt-x86_64-gcc
-```
-Type `Y` when prompted and wait for installation to complete.
-
-### Step 3 — Add GCC to PATH
-
-1. Open **Start Menu** and search for **Environment Variables**
-2. Click **Edit the system environment variables**
-3. Click **Environment Variables**
-4. Under **User variables**, select `Path` and click **Edit**
-5. Click **New** and add:
-```
-C:\msys64\ucrt64\bin
-```
-6. Click **OK** on all windows.
-
-### Step 4 — Restart VS Code
-
-Close and reopen VS Code completely for the PATH change to take effect.
-
-### Step 5 — Verify
-
-```bash
-gcc --version
-```
-
-You should see version information confirming GCC is ready.
+1. **Download MSYS2:** Go to [https://msys2.org](https://msys2.org) and download `msys2-x86_64-latest.exe`. Run the installer with default settings.
+2. **Install GCC:** When the MSYS2 terminal opens, run:
+   ```bash
+   pacman -S mingw-w64-ucrt-x86_64-gcc
+   ```
+   Type `Y` when prompted.
+3. **Add GCC to PATH:**
+   * Open **Start Menu** and search for **Environment Variables**.
+   * Click **Edit the system environment variables** -> **Environment Variables**.
+   * Under **System variables** (or User variables), select `Path` and click **Edit**.
+   * Click **New** and add: `C:\msys64\ucrt64\bin`
+   * Click **OK** on all windows.
+4. **Restart VS Code:** Close and reopen VS Code completely for the PATH change to take effect. Verify by running `gcc --version` in the terminal.
 
 ---
 
-## Important Notes
+## ⚠️ Important Notes
 
-- **Binary data** — `.dat` files are not human-readable. Use the program's display functions to view stored records.
-- **Standalone only** — the system is designed for a single machine. Sharing `.dat` files over a network drive is not supported and may cause data corruption.
-- **No authentication** — voters are identified by student ID only. There is no PIN or password system.
-- **Candidate cap** — the voting module supports up to 200 registered candidates. This is sufficient for a typical student election.
+- **Firewall:** Windows Defender may ask for permission the first time you run `.\server`. Click "Allow access" so the local sockets can connect.
+- **Database Resets:** If you modify the `Voter` or `Candidate` structs in `voter.h` (add/remove fields), you **must delete** `voters.dat` and `candidates.dat` before running the server again, or the memory alignment will crash the program.
